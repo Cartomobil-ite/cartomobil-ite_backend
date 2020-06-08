@@ -1,4 +1,4 @@
-# Ça reste ouvert - Back-end
+# Cartomobil'ité - Back-end
 
 ## Install
 
@@ -7,12 +7,12 @@ Requires :
 * NodeJS >= 9
 * PostgreSQL >= 10
 * PostGIS >= 2.5
-* A properly initialized [Ça reste ouvert](https://github.com/osmontrouge/caresteouvert) database (with `countries_subcountries` table)
+* A properly initialized [Cartomobil'ité](https://github.com/PanierAvide/cartomobil-ite) database (with `countries_subcountries` table)
 
 Then run these commands :
 
 ```bash
-cd caresteouvert_backend/
+cd cartomobil-ite_backend/
 npm install
 psql -d mydb -f src/init.sql
 npm run start:api # Launch API listening process
@@ -51,13 +51,11 @@ Notes:
 * On the first run, the database will be created automatically. It is a known issue that the worker fails in this case, because it tries to access the database before it exists.
 * To reset the database, run `docker-compose down --volumes`.
 
-## Translation
-
-Content managed by backend [can be translated on Transifex](https://www.transifex.com/openlevelup/ca-reste-ouvert-backend/).
-
 
 ## License
 
-Copyright (c) "Ça reste ouvert" 2020
+Copyright (c) "Cartomobil'ité" 2020
+
+Based on work by [Ça reste ouvert](https://caresteouvert.fr).
 
 Released under the AGPL v3 terms, see the [LICENSE](LICENSE.txt) file to read the full text.

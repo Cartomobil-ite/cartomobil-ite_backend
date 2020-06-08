@@ -1,7 +1,7 @@
 {
-  "name": "caresteouvert_backend",
+  "name": "cartomobil-ite_backend",
   "version": "0.0.0",
-  "description": "Back-end for Ça reste ouvert (caresteouvert.fr)",
+  "description": "Back-end for Cartomobil'ité",
   "main": "src/index.js",
   "engines": {
     "node": "10"
@@ -10,7 +10,7 @@
     "start:api": "node src/index.js",
     "start:osm": "node src/osm.js"
   },
-  "author": "Ça reste ouvert",
+  "author": "Adrien Pavie",
   "license": "AGPL-3.0",
   "dependencies": {
     "compression": "^1.7.4",
