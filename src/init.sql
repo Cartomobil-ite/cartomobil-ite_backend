@@ -6,8 +6,6 @@ CREATE TABLE IF NOT EXISTS contributions(
 	sent_to_osm BOOLEAN NOT NULL DEFAULT false,
 	osmid VARCHAR NOT NULL,
 	name VARCHAR,
-	status VARCHAR NOT NULL,
-	opening_hours VARCHAR,
 	details VARCHAR,
 	language VARCHAR,
 	tags JSONB,

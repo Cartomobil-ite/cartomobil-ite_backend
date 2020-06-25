@@ -1,19 +1,14 @@
 {
-    "status": {
-        "open": "ouvert pendant le confinement",
-        "closed": "fermé pendant le confinement"
-    },
     "note": {
-        "header": "Signalement #covid19 #caresteouvert {HASHTAG_COUNTRY}",
+        "header": "Contribution accessibilité Cartomobil' ite {HASHTAG_COUNTRY}",
         "name": "Nom :",
-        "status": "État :",
         "details": "Détails :",
         "url": "URL :",
-        "footer": "Pour corriger cette note, utilisez les tags opening_hours:covid19 et description:covid19 : https://wiki.openstreetmap.org/wiki/FR:Covid-19_-_how_to_map",
+        "footer": "Pour corriger cette note, utilisez les tags renseignés et vérifier le commentaire",
         "unknown": "Inconnu"
     },
     "changeset": {
-        "editor": "caresteouvert.fr",
-        "comment": "Ajout d'informations liées au confinement #covid19 #caresteouvert"
+        "editor": "cartomobilite.avoscartes.pf",
+        "comment": "Ajout d'informations liées à l'accessibilité"
     }
 }

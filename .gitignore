@@ -2,3 +2,4 @@
 /dist
 /*.conf
 /.env
+/launcher.sh

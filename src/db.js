@@ -24,10 +24,10 @@ exports.getCountry = (lon, lat) => {
 	});
 };
 
-exports.addContribution = (osmid, name, status, opening_hours, details, lon, lat, tags, croTags, language) => {
+exports.addContribution = (osmid, name, details, lon, lat, tags, croTags, language) => {
 	return pool.query(
-		"INSERT INTO contributions (osmid, name, status, opening_hours, details, geom, tags, cro_tags, language) VALUES ($1, $2, $3, $4, $5, ST_SetSRID(ST_Point($6, $7), 4326), $8, $9, $10)",
-		[ osmid, name, status, opening_hours, details, lon, lat, tags, croTags, language]
+		"INSERT INTO contributions (osmid, name, details, geom, tags, cro_tags, language) VALUES ($1, $2, $3, ST_SetSRID(ST_Point($4, $5), 4326), $6, $7, $8)",
+		[ osmid, name, details, lon, lat, tags, croTags, language]
 	);
 };
 
@@ -42,13 +42,13 @@ exports.addContributionCro = (osmid, name, details, lon, lat, croTags, language)
 exports.saveCroPoi = (osmid, tags) => {
 	const fid = osmid.split("/").map((p,i) => i === 0 ? p.substring(0, 1) : p).join("");
 	return pool.query(
-		"INSERT INTO poi_cro (osmid, tags) VALUES ($1, $2) ON CONFLICT (osmid) DO UPDATE SET tags = poi_cro.tags || EXCLUDED.tags, lastupdate = current_timestamp WHERE poi_cro.osmid = EXCLUDED.osmid",
+		"INSERT INTO poi_cro (osmid, tags) VALUES ($1, $2) ON CONFLICT (osmid) DO UPDATE SET tags = poi_cro.tags, lastupdate = current_timestamp WHERE poi_cro.osmid = EXCLUDED.osmid",
 		[ fid, tags ]
 	);
 };
 
 exports.getContributionsForUpload = () => {
-	return pool.query("SELECT id, osmid, status, opening_hours, tags, language, ST_ClusterDBSCAN(geom, eps := 2, minpoints := 1) OVER () AS cluster FROM contributions WHERE NOT sent_to_osm AND details IS NULL AND status IN ('open', 'closed') LIMIT 1000")
+	return pool.query("SELECT id, osmid, tags, language, ST_ClusterDBSCAN(geom, eps := 2, minpoints := 1) OVER () AS cluster FROM contributions WHERE NOT sent_to_osm AND details IS NULL LIMIT 1000")
 	.then(result => {
 		if(!result || !result.rows || result.rows.length === 0) { return []; }
 		else {
@@ -65,16 +65,16 @@ exports.getContributionsForUpload = () => {
 exports.getContributionsForNotes = () => {
 	return pool.query(
 `SELECT
-	c.id, c.osmid, c.name, c.status, c.opening_hours,
+	c.id, c.osmid, c.name,
 	c.details, c.tags, ST_X(c.geom) AS lon, ST_Y(c.geom) AS lat,
-	c.language, sc.country_iso2 AS country
+	c.language, 'FR' AS country
 FROM (
 	SELECT *, ST_Transform(geom, 3857) AS geom3857
 	FROM contributions
-	WHERE NOT sent_to_osm AND details IS NOT NULL AND status IN ('open', 'closed')
+	WHERE NOT sent_to_osm AND details IS NOT NULL
 	LIMIT 100
-) c
-LEFT JOIN countries_subcountries sc ON sc.wkb_geometry && c.geom3857 AND ST_Intersects(sc.wkb_geometry, c.geom3857)`
+) c`
+// LEFT JOIN countries_subcountries sc ON sc.wkb_geometry && c.geom3857 AND ST_Intersects(sc.wkb_geometry, c.geom3857)`
 	)
 	.then(result => (result && result.rows && result.rows.length > 0) ? result.rows : []);
 };

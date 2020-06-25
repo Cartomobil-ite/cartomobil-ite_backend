@@ -42,25 +42,12 @@ function sendNotesToOSM() {
 
 				const i18n = getBestI18nAvailable(note.language);
 
-				let ohtext = null;
-				if(note.opening_hours) {
-					ohtext = "opening_hours:covid19=" + note.opening_hours;
-				}
-				else if(note.status === "open") {
-					ohtext = "opening_hours:covid19=open";
-				}
-				else {
-					ohtext = "opening_hours:covid19=off";
-				}
-
 				const text = `${i18n.note.header.replace(/{HASHTAG_COUNTRY}/g, note.country ? "#caresteouvert"+note.country : "").trim()}
 
 ${i18n.note.name} ${note.name || i18n.note.unknown}
 ${i18n.note.url} ${process.env.OSM_API_URL}/${note.osmid}
 
-${i18n.note.status} ${i18n.status[note.status]}
 ${note.details ? (i18n.note.details + " " + note.details + "\n") : ""}
-${ohtext}
 ${note.tags ? (Object.entries(note.tags).map(e => e.join("=")).join("\n")+"\n") : ""}
 ${i18n.note.footer}`;
 
@@ -109,7 +96,7 @@ ${i18n.note.footer}`;
  */
 function prepareSendChangeset(contribs) {
 	return new Promise(async resolve => {
-		const i18n = getBestI18nAvailable("en");
+		const i18n = getBestI18nAvailable("fr");
 
 		// Create changeset
 		const changesetId = await osmApi.createChangeset(i18n.changeset.editor, i18n.changeset.comment);
@@ -125,16 +112,14 @@ function prepareSendChangeset(contribs) {
 						// Define tags
 						const tags = contrib.tags ? contrib.tags : {};
 
-						if(contrib.details && contrib.details.trim().length > 0) {
-							tags["description:covid19"] = contrib.details.trim();
-						}
-
-						if(contrib.status === "open") {
-							tags["opening_hours:covid19"] = contrib.opening_hours || "open";
-						}
-						else if(contrib.status === "closed") {
-							tags["opening_hours:covid19"] = "off";
-						}
+						// Tags for removal
+						Object.entries(tags).forEach(e => {
+							const [k,v] = e;
+							if(v === "null") {
+								elem = osmApi.removeTag(elem, k);
+								delete tags[k];
+							}
+						});
 
 						// Send to API
 						elem = osmApi.setTags(elem, tags);

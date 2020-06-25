@@ -6,10 +6,11 @@ const express = require('express');
 const cors = require('cors');
 const compression = require("compression");
 const db = require('./db');
-const apiRoutes = require('./directory/api-routes');
+// const apiRoutes = require('./directory/api-routes');
 const OpeningHoursBuilder = require("transport-hours/src/OpeningHoursBuilder");
 
 const RGX_COORDS = /^-?\d+(\.\d+)?$/;
+const CUSTOM_TAGS_PREFIX = "custom:";
 
 // Init API
 const app = express();
@@ -18,7 +19,7 @@ app.options('*', cors());
 app.use(compression());
 app.use(express.json());
 
-app.use('/directory', apiRoutes);
+// app.use('/directory', apiRoutes);
 
 const port = process.env.PORT || 3000;
 
@@ -57,11 +58,6 @@ app.post("/contribute/:type/:id", (req, res) => {
 
 	const osmid = req.params.type + "/" + req.params.id;
 
-	// Check state
-	if(!["open", "closed"].includes(req.body.state)) {
-		return res.status(400).send("Invalid status : "+req.body.state);
-	}
-
 	// Check details
 	if(!(req.body.details === null || req.body.details === undefined || typeof req.body.details === "string")) {
 		return res.status(400).send("Invalid details : "+req.body.details);
@@ -88,27 +84,11 @@ app.post("/contribute/:type/:id", (req, res) => {
 		return res.status(400).send("Invalid lon : "+req.body.lon);
 	}
 
-	// Check and parse hours
-	let opening_hours = null;
-
-	if(!(req.body.opening_hours === null || req.body.opening_hours === undefined || Array.isArray(req.body.opening_hours))) {
-		return res.status(400).send("Invalid opening_hours : "+req.body.details);
-	}
-
-	if(req.body.opening_hours) {
-		try {
-			opening_hours = (new OpeningHoursBuilder(req.body.opening_hours)).getValue();
-		}
-		catch(e) {
-			return res.status(400).send("Invalid opening_hours : "+e);
-		}
-	}
-
 	const language = req.body.lang || 'en';
 
 	// Check other tags
 	let otherTags = null;
-	let croTags = null;
+	let customTags = null;
 
 	if(req.body.tags) {
 		if(
@@ -124,24 +104,17 @@ app.post("/contribute/:type/:id", (req, res) => {
 		}
 		else {
 			otherTags = req.body.tags;
-			delete otherTags["opening_hours:covid19"];
-			delete otherTags["description:covid19"];
-
-			if(otherTags.opening_hours === "same" && opening_hours) {
-				otherTags.opening_hours = opening_hours;
-			}
-			else {
-				delete otherTags.opening_hours;
-			}
 
 			// Find "Ça reste ouvert" custom tags
 			Object.keys(otherTags)
-			.filter(k => k.startsWith("cro:"))
+			.filter(k => k.startsWith(CUSTOM_TAGS_PREFIX))
 			.forEach(k => {
-				if(!croTags) {
-					croTags = {};
+				if(otherTags[k] && !["null", ""].includes(otherTags[k])) {
+					if(!customTags) {
+						customTags = {};
+					}
+					customTags[k] = otherTags[k];
 				}
-				croTags[k.substring(4)] = otherTags[k];
 				delete otherTags[k];
 			});
 
@@ -153,9 +126,9 @@ app.post("/contribute/:type/:id", (req, res) => {
 	}
 
 	// Save in database
-	const promises = [ db.addContribution(osmid, name, req.body.state, opening_hours, details, req.body.lon, req.body.lat, otherTags, croTags, req.body.lang) ];
-	if(croTags) {
-		promises.push(db.saveCroPoi(osmid, croTags));
+	const promises = [ db.addContribution(osmid, name, details, req.body.lon, req.body.lat, otherTags, customTags, req.body.lang) ];
+	if(customTags) {
+		promises.push(db.saveCroPoi(osmid, customTags));
 	}
 
 	return Promise.all(promises)
@@ -207,7 +180,7 @@ app.post("/contribute/:type/:id/custom", (req, res) => {
 	const language = req.body.lang || 'en';
 
 	// Check other tags
-	let croTags = null;
+	let customTags = null;
 
 	if(
 		typeof req.body.tags !== "object"
@@ -222,13 +195,13 @@ app.post("/contribute/:type/:id/custom", (req, res) => {
 		return res.status(400).send("Invalid tags : "+req.body.tags);
 	}
 	else {
-		croTags = req.body.tags;
+		customTags = req.body.tags;
 	}
 
 	// Save in database
 	return Promise.all([
-		db.addContributionCro(osmid, name, details, req.body.lon, req.body.lat, croTags, req.body.lang),
-		db.saveCroPoi(osmid, croTags)
+		db.addContributionCro(osmid, name, details, req.body.lon, req.body.lat, customTags, req.body.lang),
+		db.saveCroPoi(osmid, customTags)
 	])
 	.then(() => res.send("OK"))
 	.catch(e => {
