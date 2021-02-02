@@ -42,13 +42,13 @@ function sendNotesToOSM() {
 
 				const i18n = getBestI18nAvailable(note.language);
 
-				const text = `${i18n.note.header.replace(/{HASHTAG_COUNTRY}/g, note.country ? "#caresteouvert"+note.country : "").trim()}
+				const text = `${i18n.note.header.replace(/{HASHTAG_COUNTRY}/g, note.country ? "#cartomobilite"+note.country : "").trim()}
 
 ${i18n.note.name} ${note.name || i18n.note.unknown}
 ${i18n.note.url} ${process.env.OSM_API_URL}/${note.osmid}
 
 ${note.details ? (i18n.note.details + " " + note.details + "\n") : ""}
-${note.tags ? (Object.entries(note.tags).map(e => e.join("=")).join("\n")+"\n") : ""}
+${note.tags ? (Object.entries(note.tags).filter(e => e[1] && e[1] !== "null").map(e => e.join("=")).join("\n")+"\n") : ""}
 ${i18n.note.footer}`;
 
 				return osmApi.createNote(note.lat, note.lon, text)
@@ -91,86 +91,127 @@ ${i18n.note.footer}`;
 	});
 }
 
+function isEquivalent(a, b) {
+	// Create arrays of property names
+	var aProps = Object.getOwnPropertyNames(a);
+	var bProps = Object.getOwnPropertyNames(b);
+
+	// If number of properties is different,
+	// objects are not equivalent
+	if (aProps.length != bProps.length) {
+		return false;
+	}
+
+	for (var i = 0; i < aProps.length; i++) {
+		var propName = aProps[i];
+
+		// If values of same property are not equal,
+		// objects are not equivalent
+		if (a[propName] !== b[propName]) {
+			return false;
+		}
+	}
+
+	// If we made it this far, objects
+	// are considered equivalent
+	return true;
+}
+
 /**
  * Handles a single changeset (used for cluster separating)
  */
 function prepareSendChangeset(contribs) {
 	return new Promise(async resolve => {
-		const i18n = getBestI18nAvailable("fr");
+		const i18n = getBestI18nAvailable("en");
+		let changesetId;
 
-		// Create changeset
-		const changesetId = await osmApi.createChangeset(i18n.changeset.editor, i18n.changeset.comment);
+		// Go through all edited features
+		const editedElemIds = [];
+		for(let contrib of contribs) {
+			try {
+				let elem = await osmApi.fetchElement(contrib.osmid);
 
-		if(changesetId) {
-			// Go through all edited features
-			const editedElemIds = [];
-			for(let contrib of contribs) {
-				try {
-					let elem = await osmApi.fetchElement(contrib.osmid);
+				if(elem) {
+					// Define tags
+					const elemStartTags = osmApi.getTags(elem);
+					const tags = contrib.tags ? contrib.tags : {};
 
-					if(elem) {
-						// Define tags
-						const tags = contrib.tags ? contrib.tags : {};
+					// Tags for removal
+					Object.entries(tags).forEach(e => {
+						const [k,v] = e;
+						if(v === "null") {
+							elem = osmApi.removeTag(elem, k);
+							delete tags[k];
+						}
+					});
 
-						// Tags for removal
-						Object.entries(tags).forEach(e => {
-							const [k,v] = e;
-							if(v === "null") {
-								elem = osmApi.removeTag(elem, k);
-								delete tags[k];
-							}
-						});
+					elem = osmApi.setTags(elem, tags);
+					const elemEndTags = osmApi.getTags(elem);
 
-						// Send to API
-						elem = osmApi.setTags(elem, tags);
+					if(Object.keys(tags).length > 0 && !isEquivalent(elemStartTags, elemEndTags)) {
 						elem = osmApi.setTimestampToNow(elem);
-						const result = await osmApi.sendElement(elem, changesetId);
 
-						if(result) {
-							editedElemIds.push(contrib.id);
+						// Create changeset if not existing
+						if(!changesetId) {
+							changesetId = await osmApi.createChangeset(i18n.changeset.editor, i18n.changeset.comment);
+						}
+
+						// Send to API if changeset was created
+						if(changesetId) {
+							const result = await osmApi.sendElement(elem, changesetId);
+
+							if(result) {
+								editedElemIds.push(contrib.id);
+							}
+							else {
+								console.error("Failed to update OSM element", contrib.osmid);
+							}
 						}
 						else {
-							console.error("Failed to update OSM element", contrib.osmid);
+							console.error("Can't create changeset");
+							resolve();
 						}
 					}
-				}
-				catch(e) {
-					// Check error code from OSM API
-					try {
-						const errorJson = JSON.parse(e.message);
-
-						// If element doesn't exist or has been deleted, marked as edited
-						if([404, 410].includes(errorJson.status)) {
-							editedElemIds.push(contrib.id);
-						}
-					}
-					catch(e2) {
-						console.error("Error with", contrib.osmid, ":", e);
+					// No changes in tags = skip update
+					else {
+						editedElemIds.push(contrib.id);
 					}
 				}
 			}
+			catch(e) {
+				// Check error code from OSM API
+				try {
+					const errorJson = JSON.parse(e.message);
 
-			osmApi.closeChangeset(changesetId);
-
-			// Send back edited features into DB
-			if(editedElemIds.length > 0) {
-				db.setContributionsSent(editedElemIds)
-				.then(() => {
-					console.log(`Updated ${editedElemIds.length} elements on OSM`);
-					resolve();
-				})
-				.catch(e => {
-					delayedContributionsSent = delayedContributionsSent.concat(editedElemIds);
-					console.error(e);
-					resolve();
-				});
-			}
-			else {
-				resolve();
+					// If element doesn't exist or has been deleted, marked as edited
+					if([404, 410].includes(errorJson.status)) {
+						editedElemIds.push(contrib.id);
+					}
+				}
+				catch(e2) {
+					console.error("Error with", contrib.osmid, ":", e);
+				}
 			}
 		}
+
+		if(changesetId) {
+			osmApi.closeChangeset(changesetId);
+		}
+
+		// Send back edited features into DB
+		if(editedElemIds.length > 0) {
+			db.setContributionsSent(editedElemIds)
+			.then(() => {
+				console.log(`Updated ${editedElemIds.length} elements on OSM`);
+				resolve();
+			})
+			.catch(e => {
+				delayedContributionsSent = delayedContributionsSent.concat(editedElemIds);
+				console.error(e);
+				resolve();
+			});
+		}
 		else {
-			console.error("Can't create changeset");
 			resolve();
 		}
 	});
