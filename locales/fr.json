@@ -4,7 +4,7 @@
         "name": "Nom :",
         "details": "Détails :",
         "url": "URL :",
-        "footer": "Pour corriger cette note, utilisez les tags renseignés et vérifier le commentaire",
+        "footer": "Pour corriger cette note, utilisez les tags renseignés et vérifiez le commentaire",
         "unknown": "Inconnu"
     },
     "changeset": {

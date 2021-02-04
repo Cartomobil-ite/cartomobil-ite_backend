@@ -48,7 +48,7 @@ exports.saveCroPoi = (osmid, tags) => {
 };
 
 exports.getContributionsForUpload = () => {
-	return pool.query("SELECT id, osmid, tags, language, ST_ClusterDBSCAN(geom, eps := 2, minpoints := 1) OVER () AS cluster FROM contributions WHERE NOT sent_to_osm AND details IS NULL LIMIT 1000")
+	return pool.query("SELECT id, osmid, tags, language, ST_ClusterDBSCAN(geom, eps := 2, minpoints := 1) OVER () AS cluster FROM contributions WHERE NOT sent_to_osm AND details IS NULL AND osmid != 'new' LIMIT 1000")
 	.then(result => {
 		if(!result || !result.rows || result.rows.length === 0) { return []; }
 		else {
@@ -71,7 +71,7 @@ exports.getContributionsForNotes = () => {
 FROM (
 	SELECT *, ST_Transform(geom, 3857) AS geom3857
 	FROM contributions
-	WHERE NOT sent_to_osm AND details IS NOT NULL
+	WHERE NOT sent_to_osm AND (details IS NOT NULL OR osmid = 'new')
 	LIMIT 100
 ) c`
 // LEFT JOIN countries_subcountries sc ON sc.wkb_geometry && c.geom3857 AND ST_Intersects(sc.wkb_geometry, c.geom3857)`

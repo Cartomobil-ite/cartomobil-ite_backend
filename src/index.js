@@ -46,6 +46,68 @@ app.get('/country', (req, res) => {
 	});
 });
 
+app.post("/contribute/new", (req, res) => {
+	// Check details
+	if(!(req.body.details === null || req.body.details === undefined || typeof req.body.details === "string")) {
+		return res.status(400).send("Invalid details : "+req.body.details);
+	}
+
+	let details = (req.body.details || "").trim();
+	if(details.length === 0) { details = null; }
+
+	// Check lat
+	if(!RGX_COORDS.test(req.body.lat)) {
+		return res.status(400).send("Invalid lat : "+req.body.lat);
+	}
+
+	// Check lon
+	if(!RGX_COORDS.test(req.body.lon)) {
+		return res.status(400).send("Invalid lon : "+req.body.lon);
+	}
+
+	// Check name
+	if(typeof req.body.name !== "string" || req.body.name.trim().length === 0) {
+		return res.status(400).send("Invalid name : "+req.body.name);
+	}
+
+	let name = req.body.name.trim();
+
+	const language = req.body.lang || 'en';
+
+	// Check other tags
+	let otherTags = null;
+
+	if(req.body.tags) {
+		if(
+			typeof req.body.tags !== "object"
+			|| Object.entries(req.body.tags).find(e => (
+				typeof e[0] !== "string"
+				|| typeof e[1] !== "string"
+				|| e[0].trim().length === 0
+				|| e[1].trim().length === 0
+			))
+		) {
+			return res.status(400).send("Invalid tags : "+req.body.tags);
+		}
+		else {
+			otherTags = req.body.tags;
+
+			// Clean-up otherTags if empty
+			if(Object.keys(otherTags).length === 0) {
+				otherTags = null;
+			}
+		}
+	}
+
+	// Save in database
+	return db.addContribution('new', name, details, req.body.lon, req.body.lat, otherTags, null, req.body.lang)
+	.then(() => res.send("OK"))
+	.catch(e => {
+		console.error(e);
+		res.status(500).send("An error happened when saving contribution");
+	});
+});
+
 app.post("/contribute/:type/:id", (req, res) => {
 	// Check OSM ID
 	if(!["node", "way", "relation"].includes(req.params.type)) {

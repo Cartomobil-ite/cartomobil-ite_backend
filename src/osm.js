@@ -45,8 +45,7 @@ function sendNotesToOSM() {
 				const text = `${i18n.note.header.replace(/{HASHTAG_COUNTRY}/g, note.country ? "#cartomobilite"+note.country : "").trim()}
 
 ${i18n.note.name} ${note.name || i18n.note.unknown}
-${i18n.note.url} ${process.env.OSM_API_URL}/${note.osmid}
-
+${note.osmid !== 'new' ? i18n.note.url+" "+process.env.OSM_API_URL+"/"+note.osmid+"\n" : ""}
 ${note.details ? (i18n.note.details + " " + note.details + "\n") : ""}
 ${note.tags ? (Object.entries(note.tags).filter(e => e[1] && e[1] !== "null").map(e => e.join("=")).join("\n")+"\n") : ""}
 ${i18n.note.footer}`;
