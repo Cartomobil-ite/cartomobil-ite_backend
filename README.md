@@ -7,7 +7,7 @@ Requires :
 * NodeJS >= 9
 * PostgreSQL >= 10
 * PostGIS >= 2.5
-* A properly initialized [Cartomobil'ité](https://github.com/PanierAvide/cartomobil-ite) database (with `countries_subcountries` table)
+* A properly initialized [Cartomobil'ité](hhttps://github.com/Cartomobil-ite/cartomobil-ite) database (with `countries_subcountries` table)
 
 Then run these commands :
 
