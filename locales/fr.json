@@ -9,6 +9,7 @@
     },
     "changeset": {
         "editor": "cartomobilite.avoscartes.pf",
-        "comment": "Ajout d'informations liées à l'accessibilité"
+        "comment": "Ajout d'informations liées à l'accessibilité",
+        "description": "Certains tags utilisés dans le cadre de ce projet sont expérimentaux, merci de consulter la page du projet pour les détails (https://wiki.openstreetmap.org/wiki/FR:French_Polynesia/CartoMobilite)"
     }
 }

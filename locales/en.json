@@ -9,6 +9,7 @@
     },
     "changeset": {
         "editor": "cartomobilite.avoscartes.pf",
-        "comment": "Information about accessibility"
+        "comment": "Information about accessibility",
+        "description": "Some tags used in this project are experimental, please check project page for details (https://wiki.openstreetmap.org/wiki/FR:French_Polynesia/CartoMobilite)"
     }
 }

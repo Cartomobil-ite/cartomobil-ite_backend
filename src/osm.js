@@ -152,7 +152,9 @@ function prepareSendChangeset(contribs) {
 
 						// Create changeset if not existing
 						if(!changesetId) {
-							changesetId = await osmApi.createChangeset(i18n.changeset.editor, i18n.changeset.comment);
+							const changesetTags = {};
+							if(i18n.changeset.description) { changesetTags.description = i18n.changeset.description; }
+							changesetId = await osmApi.createChangeset(i18n.changeset.editor, i18n.changeset.comment, changesetTags);
 						}
 
 						// Send to API if changeset was created
