@@ -266,7 +266,7 @@ function sendDataToOSM() {
 function start() {
 	console.log("OSM data sending process started");
 	sendDataToOSM();
-	setTimeout(() => sendNotesToOSM(), delay / 2);
+	setTimeout(() => sendNotesToOSM(), Math.min(delay / 2, 30000));
 };
 
 // Start process
